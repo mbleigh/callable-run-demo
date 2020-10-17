@@ -15,6 +15,13 @@ app.all(
   })
 );
 
+app.all(
+  "/hello",
+  functions.https.onCall(async (data, context) => {
+    return { message: "Hello world!" };
+  })
+);
+
 app.listen(process.env.PORT || 8080, () => {
   functions.logger.log("Up and running...");
 });
