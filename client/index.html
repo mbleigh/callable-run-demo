@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Callable Run Test</title>
+    <!-- The core Firebase JS SDK is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/7.24.0/firebase-app.js"></script>
+
+    <!-- TODO: Add SDKs for Firebase products that you want to use
+      https://firebase.google.com/docs/web/setup#available-libraries -->
+    <script src="https://www.gstatic.com/firebasejs/7.24.0/firebase-analytics.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.24.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.24.0/firebase-functions.js"></script>
+
+    <script>
+      // Your web app's Firebase configuration
+      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+      var firebaseConfig = {
+        apiKey: "AIzaSyCBTKs2f6xfL4T0WmilPeARmmcPlx1w-QU",
+        authDomain: "bleigh-sandbox-ota.firebaseapp.com",
+        databaseURL: "https://bleigh-sandbox-ota.firebaseio.com",
+        projectId: "bleigh-sandbox-ota",
+        storageBucket: "bleigh-sandbox-ota.appspot.com",
+        messagingSenderId: "193898184660",
+        appId: "1:193898184660:web:d830d87c1c9d97e97d2041",
+        measurementId: "G-6T49YZCJ85",
+      };
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      firebase.analytics();
+    </script>
+  </head>
+  <body>
+    <form id="call-function">
+      <input id="text" type="text" />
+      <button type="submit">Call Function</button>
+    </form>
+    <p>
+      <button id="sign-in" hidden>Sign in with Google</button>
+      <button id="sign-out">Sign Out</button>
+    </p>
+
+    <pre id="info"></pre>
+    <script>
+      const durations = [];
+
+      const functions = firebase
+        .app()
+        .functions("https://callables-5356tp3zna-uc.a.run.app");
+
+      const echo = functions.httpsCallable("echo");
+
+      let info = {};
+      const $callFunction = document.getElementById("call-function");
+      const $text = document.getElementById("text");
+      const $signIn = document.getElementById("sign-in");
+      const $signOut = document.getElementById("sign-out");
+      const $info = document.getElementById("info");
+
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          info.user = { uid: user.uid, name: user.displayName };
+          $signIn.setAttribute("hidden", "true");
+          $signOut.removeAttribute("hidden");
+        } else {
+          info.user = null;
+          $signOut.setAttribute("hidden", "true");
+          $signIn.removeAttribute("hidden");
+        }
+
+        updateInfo();
+      });
+
+      function updateInfo() {
+        $info.textContent = JSON.stringify(info, null, 2);
+      }
+
+      $signIn.addEventListener("click", (e) => {
+        e.preventDefault();
+        return firebase
+          .auth()
+          .signInWithPopup(new firebase.auth.GoogleAuthProvider());
+      });
+
+      $signOut.addEventListener("click", (e) => {
+        e.preventDefault();
+        return firebase.auth().signOut();
+      });
+
+      $callFunction.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const t0 = Date.now();
+        try {
+          const result = await echo({ text: $text.value || null });
+          info.result = result;
+          info.error = null;
+        } catch (e) {
+          info.error = e.message;
+          info.result = null;
+        }
+        const duration = Date.now() - t0;
+        durations.push(duration);
+        info.timing = {
+          latest: duration,
+          min: Math.min(...durations),
+          max: Math.max(...durations),
+          avg: durations.reduce((a, b) => a + b) / durations.length,
+        };
+
+        updateInfo();
+      });
+    </script>
+  </body>
+</html>
